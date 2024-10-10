@@ -16,7 +16,7 @@ floor = vizshape.addPlane(size=(floor_size, floor_size), axis=vizshape.AXIS_Y, c
 floor.setPosition(0, 0, 0)
 floor.color(viz.WHITE)
 
-character = viz.addChild('red.obj')
+character = viz.addChild('rambo.obj')
 character.setPosition([0, 0, 0])
 
 camera_distance = 4
@@ -94,3 +94,32 @@ viz.mouse.setTrap(True)
 viz.callback(viz.MOUSE_MOVE_EVENT, onMouseMove)
 
 vizact.ontimer(0, update_camera)
+
+jar = viz.addChild('red.obj')
+jar_speed = 0.03
+jar_disappear_radius = 0.1
+points_to_deduct = 100
+
+jar.setPosition([random.uniform(-floor_size / 2 + 1, floor_size / 2 - 1), 0.5, random.uniform(-floor_size / 2 + 1, floor_size / 2 - 1)])  # Spawn jar at a random location
+
+def move_jar_towards_character():
+    global score_player1, score_player2, timer_cycles  # Ensure correct player score is accessed
+    
+    character_pos = character.getPosition()
+    jar_pos = jar.getPosition()
+    
+    # Calculate the direction towards the character
+    direction = [character_pos[0] - jar_pos[0], 0, character_pos[2] - jar_pos[2]]
+    distance = math.sqrt(direction[0] ** 2 + direction[2] ** 2)
+    
+    # If jar is within the disappearing radius, deduct points and remove jar
+    if distance < jar_disappear_radius:
+        jar.remove()
+    else:
+        # Move the jar towards the player if not within radius
+        if distance > 0:
+            direction = [direction[0] / distance, 0, direction[2] / distance]
+            jar.setPosition([jar_pos[0] + direction[0] * jar_speed, jar_pos[1], jar_pos[2] + direction[2] * jar_speed])
+
+# Update the timer to call the jar movement function
+vizact.ontimer(0, move_jar_towards_character)
