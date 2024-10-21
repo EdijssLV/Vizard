@@ -112,50 +112,111 @@ def get_random_position_around_character(radius):
 
 spawn_radius = 15
 
-zombie = viz.addChild('zomb.obj')
 zombie_speed = 0.02
 zombie_disappear_radius = 0.5
-zombie_health = 50
-zombie.setPosition(get_random_position_around_character(spawn_radius))
+zombie_health = 30
 
-def move_zombie_towards_character():
-    global health_points, last_hit_time, zombie_health
-    
-    character_pos = character.getPosition()
-    zombie_pos = zombie.getPosition()
-    
-    direction = [character_pos[0] - zombie_pos[0], 0, character_pos[2] - zombie_pos[2]]
-    distance = math.sqrt(direction[0] ** 2 + direction[2] ** 2)
-    
-    angle_to_character = math.degrees(math.atan2(direction[0], direction[2])) + 180
-    zombie.setEuler([angle_to_character, 0, 0])
-    
-    if distance < zombie_disappear_radius:
-        current_time = time.time()
-        if current_time - last_hit_time >= hit_cooldown:
-            health_points -= 10
-            health_display.message(f'Health: {health_points}')
-            last_hit_time = current_time
-        
-        if health_points <= 0:
-            zombie.remove()
-            health_display.message('Health: 0 (Game Over)')
-    
-    else:
-        if distance > 0:
-            direction = [direction[0] / distance, 0, direction[2] / distance]
-            zombie.setPosition([zombie_pos[0] + direction[0] * zombie_speed, zombie_pos[1], zombie_pos[2] + direction[2] * zombie_speed])
-
-vizact.ontimer(0, move_zombie_towards_character)
-
-red_object = viz.addChild('red.obj')
-red_object.setPosition(get_random_position_around_character(spawn_radius))
-red_object_speed = 0.01
+red_object_speed = 0.02
 red_object_disappear_radius = 0.5
-red_object_health = 30
+red_object_health = 50
 red_object_stop_radius = 3
 bullet_speed = 10
 red_bullets = []
+
+zombies = []
+red_objects = []
+
+num_zombies = 5
+num_reds = 2
+
+def spawn_zombie():
+    zombie = viz.addChild('zomb.obj')
+    zombie.setPosition(get_random_position_around_character(spawn_radius))
+    zombies.append(zombie)  # Add to zombies list
+
+def spawn_red_object():
+    red = viz.addChild('red.obj')
+    red.setPosition(get_random_position_around_character(spawn_radius))
+    red_objects.append(red)  # Add to red_objects list
+
+# Spawn the specified number of zombies and red objects
+for _ in range(num_zombies):
+    spawn_zombie()
+
+for _ in range(num_reds):
+    spawn_red_object()
+
+# Function to move all zombies towards the character
+def move_all_zombies():
+    global health_points, last_hit_time, zombie_health
+    
+    character_pos = character.getPosition()
+
+    for zombie in zombies[:]:
+        zombie_pos = zombie.getPosition()
+        
+        direction = [character_pos[0] - zombie_pos[0], 0, character_pos[2] - zombie_pos[2]]
+        distance = math.sqrt(direction[0] ** 2 + direction[2] ** 2)
+        
+        angle_to_character = math.degrees(math.atan2(direction[0], direction[2])) + 180
+        zombie.setEuler([angle_to_character, 0, 0])
+        
+        if distance < zombie_disappear_radius:
+            current_time = time.time()
+            if current_time - last_hit_time >= hit_cooldown:
+                health_points -= 10
+                health_display.message(f'Health: {health_points}')
+                last_hit_time = current_time
+
+            if health_points <= 0:
+                zombie.remove()
+                health_display.message('Health: 0 (Game Over)')
+                zombies.remove(zombie)  # Remove from zombies list
+        
+        else:
+            if distance > 0:
+                direction = [direction[0] / distance, 0, direction[2] / distance]
+                zombie.setPosition([zombie_pos[0] + direction[0] * zombie_speed, zombie_pos[1], zombie_pos[2] + direction[2] * zombie_speed])
+
+# Function to move all red objects towards the character
+def move_all_red_objects():
+    global health_points, last_hit_time, red_object_health, is_red_object_active
+
+    character_pos = character.getPosition()
+
+    for red in red_objects[:]:
+        red_pos = red.getPosition()
+        
+        direction = [character_pos[0] - red_pos[0], 0, character_pos[2] - red_pos[2]]
+        distance = math.sqrt(direction[0] ** 2 + direction[2] ** 2)
+        
+        angle_to_character = math.degrees(math.atan2(direction[0], direction[2])) + 180
+        red.setEuler([angle_to_character, 0, 0])
+        
+        if distance < red_object_stop_radius:
+            continue  # Stop moving when within stop radius
+        
+        if distance < red_object_disappear_radius:
+            current_time = time.time()
+            if current_time - last_hit_time >= hit_cooldown:
+                health_points -= 10
+                health_display.message(f'Health: {health_points}')
+                last_hit_time = current_time
+
+            if health_points <= 0:
+                red.remove()
+                health_display.message('Health: 0 (Game Over)')
+                red_objects.remove(red)  # Remove from red_objects list
+                return  # Stop processing
+        
+        else:
+            if distance > 0:
+                direction = [direction[0] / distance, 0, direction[2] / distance]
+                red.setPosition([red_pos[0] + direction[0] * red_object_speed, red_pos[1], red_pos[2] + direction[2] * red_object_speed])
+
+# Call the movement functions every frame
+vizact.ontimer(0, move_all_zombies)
+vizact.ontimer(0, move_all_red_objects)
 
 def shoot_red_bullet():
     bullet = vizshape.addSphere(radius=0.1, color=viz.RED)
@@ -193,41 +254,4 @@ def update_red_bullets():
 
 is_red_object_active = True
 
-def move_red_object_towards_character():
-    global health_points, last_hit_time, red_object_health, is_red_object_active
-    
-    if not is_red_object_active:
-        return  # Stop processing if red object is no longer active
-
-    character_pos = character.getPosition()
-    red_object_pos = red_object.getPosition()
-    
-    direction = [character_pos[0] - red_object_pos[0], 0, character_pos[2] - red_object_pos[2]]
-    distance = math.sqrt(direction[0] ** 2 + direction[2] ** 2)
-    
-    angle_to_character = math.degrees(math.atan2(direction[0], direction[2])) + 180
-    red_object.setEuler([angle_to_character, 0, 0])
-    
-    if distance < red_object_stop_radius:
-        return  # Red object stops moving when within the stop radius
-    
-    if distance < red_object_disappear_radius:
-        current_time = time.time()
-        if current_time - last_hit_time >= hit_cooldown:
-            health_points -= 10
-            health_display.message(f'Health: {health_points}')
-            last_hit_time = current_time
-            
-        if health_points <= 0:
-            red_object.remove()
-            health_display.message('Health: 0 (Game Over)')
-            is_red_object_active = False  # Set flag to False after red object is removed
-            return  # Stop further processing
-    
-    else:
-        if distance > 0:
-            direction = [direction[0] / distance, 0, direction[2] / distance]
-            red_object.setPosition([red_object_pos[0] + direction[0] * red_object_speed, red_object_pos[1], red_object_pos[2] + direction[2] * red_object_speed])
-
-vizact.ontimer(0, move_red_object_towards_character)
 vizact.ontimer(0, update_red_bullets)
