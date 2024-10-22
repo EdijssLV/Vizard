@@ -88,6 +88,48 @@ vizact.onkeydown('s', move_backward)
 vizact.onkeydown('a', move_left)
 vizact.onkeydown('d', move_right)
 
+bullet_speed = 10
+active_bullets = []
+
+def shoot_bullet():
+    
+    # Get the position and orientation of the character model (gun's position)
+    character_position = character.getPosition()
+    character_orientation = character.getEuler()
+
+    # Load the bullet model at the character's gun position
+    bullet = viz.addChild("jar.obj")
+
+    # Set the initial position and orientation of the bullet to match the gun's direction
+    bullet.setPosition(character_position[0], 0.7, character_position[2])
+    bullet.setEuler(character_orientation)
+    
+    # Function to move the bullet forward
+    def move_bullet():
+        global kill_count
+        # Get the current position of the bullet
+        bullet_pos = bullet.getPosition()
+        camera_orientation = viz.MainView.getEuler()
+        # Calculate the forward direction based on the character's yaw (horizontal rotation)
+        yaw = character_orientation[0]
+        pitch = math.radians(camera_orientation[1])  # Vertical rotation
+        forward_x = math.sin(math.radians(yaw))
+        forward_y = math.sin(pitch-0.25)
+        forward_z = math.cos(math.radians(yaw))
+        
+        # Move the bullet forward in the direction it's facing
+        forward_vector = viz.Vector(forward_x, forward_y, forward_z) * -bullet_speed * viz.elapsed()
+        new_bullet_pos = bullet_pos + forward_vector 
+
+        # Update tShe bullet's position
+        bullet.setPosition(new_bullet_pos)
+    vizact.ontimer(0, move_bullet)
+    
+def on_mouse_click(button):
+    if button == viz.MOUSEBUTTON_LEFT:
+        shoot_bullet()
+viz.callback(viz.MOUSEDOWN_EVENT, on_mouse_click)
+
 MOUSE_SENSITIVITY = 0.1
 
 def onMouseMove(e):
@@ -120,8 +162,6 @@ red_object_speed = 0.02
 red_object_disappear_radius = 0.5
 red_object_health = 50
 red_object_stop_radius = 3
-bullet_speed = 10
-red_bullets = []
 
 zombies = []
 red_objects = []
@@ -132,21 +172,19 @@ num_reds = 2
 def spawn_zombie():
     zombie = viz.addChild('zomb.obj')
     zombie.setPosition(get_random_position_around_character(spawn_radius))
-    zombies.append(zombie)  # Add to zombies list
+    zombies.append(zombie)
 
 def spawn_red_object():
     red = viz.addChild('red.obj')
     red.setPosition(get_random_position_around_character(spawn_radius))
-    red_objects.append(red)  # Add to red_objects list
+    red_objects.append(red)
 
-# Spawn the specified number of zombies and red objects
 for _ in range(num_zombies):
     spawn_zombie()
 
 for _ in range(num_reds):
     spawn_red_object()
 
-# Function to move all zombies towards the character
 def move_all_zombies():
     global health_points, last_hit_time, zombie_health
     
@@ -171,16 +209,15 @@ def move_all_zombies():
             if health_points <= 0:
                 zombie.remove()
                 health_display.message('Health: 0 (Game Over)')
-                zombies.remove(zombie)  # Remove from zombies list
+                zombies.remove(zombie)
         
         else:
             if distance > 0:
                 direction = [direction[0] / distance, 0, direction[2] / distance]
                 zombie.setPosition([zombie_pos[0] + direction[0] * zombie_speed, zombie_pos[1], zombie_pos[2] + direction[2] * zombie_speed])
 
-# Function to move all red objects towards the character
 def move_all_red_objects():
-    global health_points, last_hit_time, red_object_health, is_red_object_active
+    global health_points, last_hit_time, red_object_health
 
     character_pos = character.getPosition()
 
@@ -194,7 +231,7 @@ def move_all_red_objects():
         red.setEuler([angle_to_character, 0, 0])
         
         if distance < red_object_stop_radius:
-            continue  # Stop moving when within stop radius
+            continue
         
         if distance < red_object_disappear_radius:
             current_time = time.time()
@@ -206,52 +243,14 @@ def move_all_red_objects():
             if health_points <= 0:
                 red.remove()
                 health_display.message('Health: 0 (Game Over)')
-                red_objects.remove(red)  # Remove from red_objects list
-                return  # Stop processing
+                red_objects.remove(red)
+                return
         
         else:
             if distance > 0:
                 direction = [direction[0] / distance, 0, direction[2] / distance]
                 red.setPosition([red_pos[0] + direction[0] * red_object_speed, red_pos[1], red_pos[2] + direction[2] * red_object_speed])
 
-# Call the movement functions every frame
 vizact.ontimer(0, move_all_zombies)
 vizact.ontimer(0, move_all_red_objects)
 
-def shoot_red_bullet():
-    bullet = vizshape.addSphere(radius=0.1, color=viz.RED)
-    bullet.setPosition(red_object.getPosition()[0], red_object.getPosition()[1] + 1.0, red_object.getPosition()[2])
-    character_pos = character.getPosition()
-    direction = [character_pos[0] - bullet.getPosition()[0], 0, character_pos[2] - bullet.getPosition()[2]]
-    distance = math.sqrt(direction[0] ** 2 + direction[2] ** 2)
-    
-    if distance > 0:
-        direction = [direction[0] / distance, 0, direction[2] / distance]
-
-    red_bullets.append((bullet, direction))
-
-def update_red_bullets():
-    global red_bullets
-    
-    for bullet, direction in red_bullets[:]:
-        bullet_pos = bullet.getPosition()
-        new_pos = [bullet_pos[0] + direction[0] * bullet_speed * viz.elapsed(),
-                   bullet_pos[1],
-                   bullet_pos[2] + direction[2] * bullet_speed * viz.elapsed()]
-        bullet.setPosition(new_pos)
-        
-        character_pos = character.getPosition()
-        distance_to_character = math.sqrt((new_pos[0] - character_pos[0]) ** 2 + (new_pos[2] - character_pos[2]) ** 2)
-        
-        if distance_to_character < 0.5:
-            bullet.remove()
-            red_bullets.remove((bullet, direction))
-            global health_points
-            health_points -= 10
-            health_display.message(f'Health: {health_points}')
-            if health_points <= 0:
-                health_display.message('Health: 0 (Game Over)')
-
-is_red_object_active = True
-
-vizact.ontimer(0, update_red_bullets)
