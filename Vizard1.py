@@ -88,48 +88,6 @@ vizact.onkeydown('s', move_backward)
 vizact.onkeydown('a', move_left)
 vizact.onkeydown('d', move_right)
 
-bullet_speed = 10
-active_bullets = []
-
-def shoot_bullet():
-    
-    # Get the position and orientation of the character model (gun's position)
-    character_position = character.getPosition()
-    character_orientation = character.getEuler()
-
-    # Load the bullet model at the character's gun position
-    bullet = viz.addChild("jar.obj")
-
-    # Set the initial position and orientation of the bullet to match the gun's direction
-    bullet.setPosition(character_position[0], 0.7, character_position[2])
-    bullet.setEuler(character_orientation)
-    
-    # Function to move the bullet forward
-    def move_bullet():
-        global kill_count
-        # Get the current position of the bullet
-        bullet_pos = bullet.getPosition()
-        camera_orientation = viz.MainView.getEuler()
-        # Calculate the forward direction based on the character's yaw (horizontal rotation)
-        yaw = character_orientation[0]
-        pitch = math.radians(camera_orientation[1])  # Vertical rotation
-        forward_x = math.sin(math.radians(yaw))
-        forward_y = math.sin(pitch-0.25)
-        forward_z = math.cos(math.radians(yaw))
-        
-        # Move the bullet forward in the direction it's facing
-        forward_vector = viz.Vector(forward_x, forward_y, forward_z) * -bullet_speed * viz.elapsed()
-        new_bullet_pos = bullet_pos + forward_vector 
-
-        # Update tShe bullet's position
-        bullet.setPosition(new_bullet_pos)
-    vizact.ontimer(0, move_bullet)
-    
-def on_mouse_click(button):
-    if button == viz.MOUSEBUTTON_LEFT:
-        shoot_bullet()
-viz.callback(viz.MOUSEDOWN_EVENT, on_mouse_click)
-
 MOUSE_SENSITIVITY = 0.1
 
 def onMouseMove(e):
@@ -179,11 +137,25 @@ def spawn_red_object():
     red.setPosition(get_random_position_around_character(spawn_radius))
     red_objects.append(red)
 
-for _ in range(num_zombies):
-    spawn_zombie()
+def check_and_spawn_enemies():
+    global num_zombies, num_reds
+    
+    if not zombies and not red_objects:
+        print("All enemies defeated! Spawning new wave...")
+        num_zombies += 2  # Increase zombie count by 2 for each wave
+        num_reds += 1  # Increase red object count by 1 for each wave
+        
+        for _ in range(num_zombies):
+            spawn_zombie()
+        
+        for _ in range(num_reds):
+            spawn_red_object()
+    
+    # Schedule the next check
+    vizact.ontimer(2, check_and_spawn_enemies)  # Changed from 0.1 to 2 seconds
 
-for _ in range(num_reds):
-    spawn_red_object()
+# Start the enemy check loop
+check_and_spawn_enemies()
 
 def move_all_zombies():
     global health_points, last_hit_time, zombie_health
@@ -253,4 +225,63 @@ def move_all_red_objects():
 
 vizact.ontimer(0, move_all_zombies)
 vizact.ontimer(0, move_all_red_objects)
+
+bullet_speed = 10
+active_bullets = []
+
+def shoot_bullet():
+    character_position = character.getPosition()
+    character_orientation = character.getEuler()
+
+    bullet = viz.addChild("jar.obj")
+
+    bullet.setPosition(character_position[0], 0.7, character_position[2])
+    bullet.setEuler(character_orientation)
+    
+    # Function to move the bullet forward
+    def move_bullet():
+        # Get the current position of the bullet
+        bullet_pos = bullet.getPosition()
+        camera_orientation = viz.MainView.getEuler()
+        # Calculate the forward direction based on the character's yaw (horizontal rotation)
+        yaw = character_orientation[0]
+        pitch = math.radians(camera_orientation[1])  # Vertical rotation
+        forward_x = math.sin(math.radians(yaw))
+        forward_y = math.sin(pitch-0.25)
+        forward_z = math.cos(math.radians(yaw))
+        
+        forward_vector = viz.Vector(forward_x, forward_y, forward_z) * -bullet_speed * viz.elapsed()
+        new_bullet_pos = bullet_pos + forward_vector 
+
+        # Update tShe bullet's position
+        bullet.setPosition(new_bullet_pos)
+        
+        for red in red_objects[:]:
+            red_pos = red.getPosition()
+            distance = vizmat.Distance(bullet_pos, red_pos)
+            if distance < 0.8:  # Adjust this value to change the collision radius
+                red.remove()
+                red_objects.remove(red)
+                bullet.remove()
+                return  # Stop the bullet movement
+        
+        for zombie in zombies[:]:
+            zombie_pos = zombie.getPosition()
+            distance = vizmat.Distance(bullet_pos, zombie_pos)
+            if distance < 0.8:  # Adjust this value to change the collision radius
+                zombie.remove()
+                zombies.remove(zombie)
+                bullet.remove()
+                return
+        
+        # Remove the bullet if it's gone too far
+        if vizmat.Distance(bullet_pos, character_position) > 20:
+            bullet.remove()
+            return
+    vizact.ontimer(0, move_bullet)
+    
+def on_mouse_click(button):
+    if button == viz.MOUSEBUTTON_LEFT:
+        shoot_bullet()
+viz.callback(viz.MOUSEDOWN_EVENT, on_mouse_click)
 
