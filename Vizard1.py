@@ -15,7 +15,7 @@ viz.MainView.getHeadLight().enable()
 floor_size = 50
 floor = vizshape.addPlane(size=(floor_size, floor_size), axis=vizshape.AXIS_Y, cullFace=False)
 floor.setPosition(0, 0, 0)
-floor.color(viz.WHITE)
+floor.color([1, 1, 1])
 
 def spawn_walls(num_walls):
     for _ in range(num_walls):
@@ -23,6 +23,11 @@ def spawn_walls(num_walls):
         wall = viz.addChild(f'{wall_type}wall.obj')
         wall.setPosition([random.uniform(-floor_size/2, floor_size/2), 0, random.uniform(-floor_size/2, floor_size/2)])
         wall.setScale([0.5, 0.5, 0.5])
+
+viz.MainView.getHeadLight().enable()
+viz.MainView.getHeadLight().setPosition([0, 0, 0])
+viz.MainView.getHeadLight().setEuler([0, 0, 0])
+viz.MainView.getHeadLight().intensity(1.2)
 
 spawn_walls(20)
 
@@ -45,8 +50,8 @@ def update_score(points):
     score_display.message(f'Score: {score}')
 
 
-b = viz.addText(f'+', viz.SCREEN)
-b.setPosition(0.5, 0.7)
+b = viz.addText(f'X', viz.SCREEN)
+b.setPosition(0.49, 0.75)
 b.fontSize(30)
 
 character = viz.addChild('rambo.obj')
@@ -80,6 +85,10 @@ def move(direction):
     new_pos = [current_pos[0] + move_dir[0] * MOVE_SPEED * viz.elapsed(),
                current_pos[1],
                current_pos[2] + move_dir[2] * MOVE_SPEED * viz.elapsed()]
+    
+    new_pos[0] = max(-floor_size/2, min(floor_size/2, new_pos[0]))
+    new_pos[2] = max(-floor_size/2, min(floor_size/2, new_pos[2]))
+    
     character.setPosition(new_pos)
 
 def move_forward():
@@ -96,6 +105,10 @@ def move_left():
     new_pos = [current_pos[0] + strafe_dir[0] * MOVE_SPEED * viz.elapsed(),
                current_pos[1],
                current_pos[2] + strafe_dir[2] * MOVE_SPEED * viz.elapsed()]
+    
+    new_pos[0] = max(-floor_size/2, min(floor_size/2, new_pos[0]))
+    new_pos[2] = max(-floor_size/2, min(floor_size/2, new_pos[2]))
+    
     character.setPosition(new_pos)
 
 def move_right():
@@ -106,6 +119,10 @@ def move_right():
     new_pos = [current_pos[0] + strafe_dir[0] * MOVE_SPEED * viz.elapsed(),
                current_pos[1],
                current_pos[2] + strafe_dir[2] * MOVE_SPEED * viz.elapsed()]
+    
+    new_pos[0] = max(-floor_size/2, min(floor_size/2, new_pos[0]))
+    new_pos[2] = max(-floor_size/2, min(floor_size/2, new_pos[2]))
+    
     character.setPosition(new_pos)
 
 vizact.onkeydown('w', move_forward)
@@ -162,7 +179,7 @@ def spawn_zombie():
 def spawn_red_object():
     red = viz.addChild('red.fbx')
     red.setPosition(get_random_position_around_character(spawn_radius))
-    red.health = red_object_health  # Assign health to each red object
+    red.health = red_object_health
     red_objects.append(red)
     red.setScale([0.01, 0.01, 0.01])
 
@@ -171,8 +188,8 @@ def check_and_spawn_enemies():
     
     if not zombies and not red_objects:
         print("All enemies defeated!")
-        num_zombies += 1  # Increase zombie count by 2 for each wave
-        num_reds += 1  # Increase red object count by 1 for each wave
+        num_zombies += 1 
+        num_reds += 1 
         
         for _ in range(num_zombies):
             spawn_zombie()
@@ -180,10 +197,8 @@ def check_and_spawn_enemies():
         for _ in range(num_reds):
             spawn_red_object()
     
-    # Schedule the next check
     vizact.ontimer(2, check_and_spawn_enemies)
 
-# Start the enemy check loop
 check_and_spawn_enemies()
 
 def move_all_zombies():
@@ -255,26 +270,29 @@ def move_all_red_objects():
 vizact.ontimer(0, move_all_zombies)
 vizact.ontimer(0, move_all_red_objects)
 
-bullet_speed = 10
+bullet_speed = 50
 active_bullets = []
 
 def shoot_bullet():
     character_position = character.getPosition()
     character_orientation = character.getEuler()
 
-    bullet = viz.addChild("jar.obj")
+    #bullet = viz.addChild("jar.obj")
+    
+    bullet = vizshape.addSphere(radius=0.1,
+               slices=4,
+               stacks=4,
+               axis=vizshape.AXIS_Y)
 
     bullet.setPosition(character_position[0], 0.7, character_position[2])
     bullet.setEuler(character_orientation)
     
-    # Function to move the bullet forward
     def move_bullet():
-        # Get the current position of the bullet
         bullet_pos = bullet.getPosition()
         camera_orientation = viz.MainView.getEuler()
-        # Calculate the forward direction based on the character's yaw (horizontal rotation)
+        
         yaw = character_orientation[0]
-        pitch = math.radians(camera_orientation[1])  # Vertical rotation
+        pitch = math.radians(camera_orientation[1])
         forward_x = math.sin(math.radians(yaw))
         forward_y = math.sin(pitch-0.25)
         forward_z = math.cos(math.radians(yaw))
@@ -282,30 +300,28 @@ def shoot_bullet():
         forward_vector = viz.Vector(forward_x, forward_y, forward_z) * -bullet_speed * viz.elapsed()
         new_bullet_pos = bullet_pos + forward_vector 
 
-        # Update tShe bullet's position
         bullet.setPosition(new_bullet_pos)
         
         for red in red_objects[:]:
             red_pos = red.getPosition()
             distance = vizmat.Distance(bullet_pos, red_pos)
-            if distance < 0.8:  # Adjust this value to change the collision radius
+            if distance < 0.8:
                 red.remove()
                 red_objects.remove(red)
                 bullet.remove()
                 update_score(10)
-                return  # Stop the bullet movement
+                return
         
         for zombie in zombies[:]:
             zombie_pos = zombie.getPosition()
             distance = vizmat.Distance(bullet_pos, zombie_pos)
-            if distance < 0.8:  # Adjust this value to change the collision radius
+            if distance < 0.8:
                 zombie.remove()
                 zombies.remove(zombie)
                 bullet.remove()
                 update_score(5)
                 return
         
-        # Remove the bullet if it's gone too far
         if vizmat.Distance(bullet_pos, character_position) > 20:
             bullet.remove()
             return
