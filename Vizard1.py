@@ -12,17 +12,42 @@ viz.go()
 viz.clearcolor(viz.SKYBLUE)
 viz.MainView.getHeadLight().enable()
 
-floor_size = 32
+floor_size = 50
 floor = vizshape.addPlane(size=(floor_size, floor_size), axis=vizshape.AXIS_Y, cullFace=False)
 floor.setPosition(0, 0, 0)
 floor.color(viz.WHITE)
 
+def spawn_walls(num_walls):
+    for _ in range(num_walls):
+        wall_type = random.choice(['big', 'small'])
+        wall = viz.addChild(f'{wall_type}wall.obj')
+        wall.setPosition([random.uniform(-floor_size/2, floor_size/2), 0, random.uniform(-floor_size/2, floor_size/2)])
+        wall.setScale([0.5, 0.5, 0.5])
+
+spawn_walls(20)
+
 health_points = 100
 hit_cooldown = 1.5
 last_hit_time = 0
+
 health_display = viz.addText(f'Health: {health_points}', viz.SCREEN)
 health_display.setPosition(0.05, 0.95)
 health_display.fontSize(24)
+
+score = 0
+score_display = viz.addText(f'Score: {score}', viz.SCREEN)
+score_display.setPosition(0.05, 0.9)
+score_display.fontSize(24)
+
+def update_score(points):
+    global score
+    score += points
+    score_display.message(f'Score: {score}')
+
+
+b = viz.addText(f'+', viz.SCREEN)
+b.setPosition(0.5, 0.7)
+b.fontSize(30)
 
 character = viz.addChild('rambo.obj')
 character.setPosition([0, 0, 0])
@@ -124,25 +149,29 @@ red_object_stop_radius = 3
 zombies = []
 red_objects = []
 
-num_zombies = 5
-num_reds = 2
+num_zombies = 1
+num_reds = -1
 
 def spawn_zombie():
-    zombie = viz.addChild('zomb.obj')
+    zombie = viz.addChild('zomb.fbx')
     zombie.setPosition(get_random_position_around_character(spawn_radius))
+    zombie.health = zombie_health 
     zombies.append(zombie)
+    zombie.setScale([0.01, 0.01, 0.01])
 
 def spawn_red_object():
-    red = viz.addChild('red.obj')
+    red = viz.addChild('red.fbx')
     red.setPosition(get_random_position_around_character(spawn_radius))
+    red.health = red_object_health  # Assign health to each red object
     red_objects.append(red)
+    red.setScale([0.01, 0.01, 0.01])
 
 def check_and_spawn_enemies():
     global num_zombies, num_reds
     
     if not zombies and not red_objects:
-        print("All enemies defeated! Spawning new wave...")
-        num_zombies += 2  # Increase zombie count by 2 for each wave
+        print("All enemies defeated!")
+        num_zombies += 1  # Increase zombie count by 2 for each wave
         num_reds += 1  # Increase red object count by 1 for each wave
         
         for _ in range(num_zombies):
@@ -152,13 +181,13 @@ def check_and_spawn_enemies():
             spawn_red_object()
     
     # Schedule the next check
-    vizact.ontimer(2, check_and_spawn_enemies)  # Changed from 0.1 to 2 seconds
+    vizact.ontimer(2, check_and_spawn_enemies)
 
 # Start the enemy check loop
 check_and_spawn_enemies()
 
 def move_all_zombies():
-    global health_points, last_hit_time, zombie_health
+    global health_points, last_hit_time
     
     character_pos = character.getPosition()
 
@@ -189,8 +218,8 @@ def move_all_zombies():
                 zombie.setPosition([zombie_pos[0] + direction[0] * zombie_speed, zombie_pos[1], zombie_pos[2] + direction[2] * zombie_speed])
 
 def move_all_red_objects():
-    global health_points, last_hit_time, red_object_health
-
+    global health_points, last_hit_time
+    
     character_pos = character.getPosition()
 
     for red in red_objects[:]:
@@ -263,6 +292,7 @@ def shoot_bullet():
                 red.remove()
                 red_objects.remove(red)
                 bullet.remove()
+                update_score(10)
                 return  # Stop the bullet movement
         
         for zombie in zombies[:]:
@@ -272,6 +302,7 @@ def shoot_bullet():
                 zombie.remove()
                 zombies.remove(zombie)
                 bullet.remove()
+                update_score(5)
                 return
         
         # Remove the bullet if it's gone too far
@@ -284,4 +315,3 @@ def on_mouse_click(button):
     if button == viz.MOUSEBUTTON_LEFT:
         shoot_bullet()
 viz.callback(viz.MOUSEDOWN_EVENT, on_mouse_click)
-
