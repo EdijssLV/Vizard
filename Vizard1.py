@@ -197,7 +197,7 @@ def check_and_spawn_enemies():
         for _ in range(num_reds):
             spawn_red_object()
     
-    vizact.ontimer(2, check_and_spawn_enemies)
+    vizact.ontimer(5, check_and_spawn_enemies)
 
 check_and_spawn_enemies()
 
@@ -233,7 +233,7 @@ def move_all_zombies():
                 zombie.setPosition([zombie_pos[0] + direction[0] * zombie_speed, zombie_pos[1], zombie_pos[2] + direction[2] * zombie_speed])
 
 def move_all_red_objects():
-    global health_points, last_hit_time
+    global health_points, last_hit_time, red_object_last_shot_time
     
     character_pos = character.getPosition()
 
@@ -247,6 +247,11 @@ def move_all_red_objects():
         red.setEuler([angle_to_character, 0, 0])
         
         if distance < red_object_stop_radius:
+            # Red object is within stop radius, check if it can shoot
+            current_time = time.time()
+            if current_time - red_object_last_shot_time >= red_object_shoot_cooldown:
+                shoot_red_bullet_new(red)
+                red_object_last_shot_time = current_time
             continue
         
         if distance < red_object_disappear_radius:
@@ -267,11 +272,76 @@ def move_all_red_objects():
                 direction = [direction[0] / distance, 0, direction[2] / distance]
                 red.setPosition([red_pos[0] + direction[0] * red_object_speed, red_pos[1], red_pos[2] + direction[2] * red_object_speed])
 
+
 vizact.ontimer(0, move_all_zombies)
 vizact.ontimer(0, move_all_red_objects)
 
 bullet_speed = 50
 active_bullets = []
+
+red_object_last_shot_time = 0
+red_object_shoot_cooldown = 2
+
+def shoot_red_bullet_new(red):
+    red_position = red.getPosition()
+    bullet = vizshape.addSphere(radius=0.1,
+               slices=4,
+               stacks=4,
+               axis=vizshape.AXIS_Y)
+    bullet.setPosition(red_position[0], 0.7, red_position[2])
+    bullet.setEuler(red.getEuler())
+    
+    def move_bullet():
+        bullet_pos = bullet.getPosition()
+        character_pos = character.getPosition()
+        distance = vizmat.Distance(bullet_pos, character_pos)
+        
+        if distance > 20 or not bullet.visible:
+            bullet.remove()
+            return
+        
+        direction = [character_pos[0] - bullet_pos[0], 0, character_pos[2] - bullet_pos[2]]
+        direction = [d / distance for d in direction]
+        bullet.setPosition([bullet_pos[0] + direction[0] * bullet_speed * viz.elapsed(),
+                            bullet_pos[1],
+                            bullet_pos[2] + direction[2] * bullet_speed * viz.elapsed()])
+        
+        if distance < 0.8:
+            bullet.remove()
+            global health_points, last_hit_time
+            current_time = time.time()
+            if current_time - last_hit_time >= hit_cooldown:
+                health_points -= 10
+                health_display.message(f'Health: {health_points}')
+                last_hit_time = current_time
+            return
+        
+        vizact.ontimer(1, move_bullet)
+    
+    vizact.ontimer(0, move_bullet)
+    
+    def check_collision():
+        if not bullet.visible:
+            return
+        
+        character_pos = character.getPosition()
+        bullet_pos = bullet.getPosition()
+        distance = vizmat.Distance(bullet_pos, character_pos)
+        
+        if distance < 0.8:
+            bullet.remove()
+            global health_points, last_hit_time
+            current_time = time.time()
+            if current_time - last_hit_time >= hit_cooldown:
+                health_points -= 10
+                health_display.message(f'Health: {health_points}')
+                last_hit_time = current_time
+            return
+        
+        vizact.ontimer(0.01, check_collision)
+    
+    vizact.ontimer(0, check_collision)
+
 
 def shoot_bullet():
     character_position = character.getPosition()
