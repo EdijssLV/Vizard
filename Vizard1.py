@@ -19,10 +19,10 @@ floor.color([1, 1, 1])
 
 def spawn_walls(num_walls):
     for _ in range(num_walls):
-        wall_type = random.choice(['big', 'small'])
-        wall = viz.addChild(f'{wall_type}wall.obj')
+        wall = viz.addChild(f'bigwall.obj')
         wall.setPosition([random.uniform(-floor_size/2, floor_size/2), 0, random.uniform(-floor_size/2, floor_size/2)])
         wall.setScale([0.5, 0.5, 0.5])
+        wall.color([random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)])
 
 viz.MainView.getHeadLight().enable()
 viz.MainView.getHeadLight().setPosition([0, 0, 0])
@@ -32,7 +32,7 @@ viz.MainView.getHeadLight().intensity(1.2)
 spawn_walls(20)
 
 health_points = 100
-hit_cooldown = 1.5
+hit_cooldown = 2
 last_hit_time = 0
 
 health_display = viz.addText(f'Health: {health_points}', viz.SCREEN)
@@ -277,8 +277,6 @@ def shoot_bullet():
     character_position = character.getPosition()
     character_orientation = character.getEuler()
 
-    #bullet = viz.addChild("jar.obj")
-    
     bullet = vizshape.addSphere(radius=0.1,
                slices=4,
                stacks=4,
@@ -306,26 +304,31 @@ def shoot_bullet():
             red_pos = red.getPosition()
             distance = vizmat.Distance(bullet_pos, red_pos)
             if distance < 0.8:
-                red.remove()
-                red_objects.remove(red)
+                red.health -= 10
+                if red.health <= 0:
+                    red.remove()
+                    red_objects.remove(red)
+                    update_score(10)
                 bullet.remove()
-                update_score(10)
                 return
         
         for zombie in zombies[:]:
             zombie_pos = zombie.getPosition()
             distance = vizmat.Distance(bullet_pos, zombie_pos)
             if distance < 0.8:
-                zombie.remove()
-                zombies.remove(zombie)
+                zombie.health -= 10
+                if zombie.health <= 0:
+                    zombie.remove()
+                    zombies.remove(zombie)
+                    update_score(5)
                 bullet.remove()
-                update_score(5)
                 return
         
         if vizmat.Distance(bullet_pos, character_position) > 20:
             bullet.remove()
             return
     vizact.ontimer(0, move_bullet)
+
     
 def on_mouse_click(button):
     if button == viz.MOUSEBUTTON_LEFT:
