@@ -50,7 +50,6 @@ def update_score(points):
     score += points
     score_display.message(f'Score: {score}')
 
-
 b = viz.addText(f'X', viz.SCREEN)
 b.setPosition(0.49, 0.75)
 b.fontSize(30)
@@ -170,6 +169,7 @@ def spawn_zombie():
     zombie.health = zombie_health 
     zombies.append(zombie)
     zombie.setScale([0.01, 0.01, 0.01])
+    zombie.speed = random.uniform(0.03, 0.1)
 
 def check_and_spawn_enemies():
     global num_zombies
@@ -202,7 +202,7 @@ def move_all_zombies():
         if distance < zombie_disappear_radius:
             current_time = time.time()
             if current_time - last_hit_time >= hit_cooldown:
-                health_points -= 10
+                health_points -= 15
                 health_display.message(f'Health: {health_points}')
                 last_hit_time = current_time
 
@@ -214,7 +214,7 @@ def move_all_zombies():
         else:
             if distance > 0:
                 direction = [direction[0] / distance, 0, direction[2] / distance]
-                zombie.setPosition([zombie_pos[0] + direction[0] * zombie_speed, zombie_pos[1], zombie_pos[2] + direction[2] * zombie_speed])
+                zombie.setPosition([zombie_pos[0] + direction[0] * zombie.speed, zombie_pos[1], zombie_pos[2] + direction[2] * zombie.speed])
 
 vizact.ontimer(0, move_all_zombies)
 
@@ -256,7 +256,7 @@ def shoot_bullet():
                 if zombie.health <= 0:
                     zombie.remove()
                     zombies.remove(zombie)
-                    update_score(5)
+                    update_score(int(500 * zombie.speed))
                 bullet.remove()
                 return
         
@@ -264,7 +264,6 @@ def shoot_bullet():
             bullet.remove()
             return
     vizact.ontimer(0, move_bullet)
-
 def on_mouse_click(button):
     if button == viz.MOUSEBUTTON_LEFT:
         shoot_bullet()
