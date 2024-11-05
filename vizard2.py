@@ -154,7 +154,6 @@ def get_random_position_around_character(radius):
 
 spawn_radius = 15
 
-zombie_speed = 0.02
 zombie_disappear_radius = 0.5
 zombie_health = 30
 
@@ -210,6 +209,8 @@ def move_all_zombies():
                 zombie.remove()
                 health_display.message('Health: 0 (Game Over)')
                 zombies.remove(zombie)
+                vizinput.message('Game Over! Final Score: \n{} points!'.format(score))
+                viz.quit()
         
         else:
             if distance > 0:
@@ -264,7 +265,16 @@ def shoot_bullet():
             bullet.remove()
             return
     vizact.ontimer(0, move_bullet)
+
+def spawn_mine():
+    character_pos = character.getPosition()
+    mine = viz.addChild('assets/mīna.fbx')
+    mine.setPosition([character_pos[0], 0.02, character_pos[2]])
+    mine.setScale([0.01, 0.01, 0.01])
+    
 def on_mouse_click(button):
     if button == viz.MOUSEBUTTON_LEFT:
         shoot_bullet()
+    elif button == viz.MOUSEBUTTON_RIGHT:
+        spawn_mine()
 viz.callback(viz.MOUSEDOWN_EVENT, on_mouse_click)
