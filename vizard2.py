@@ -6,8 +6,8 @@ import math
 import random
 import time
 
-viz.window.setSize(1280, 720)
-viz.go()
+#viz.window.setSize(1280, 720)
+viz.go(viz.FULLSCREEN)
 
 viz.clearcolor(viz.SKYBLUE)
 viz.MainView.getHeadLight().enable()
@@ -168,7 +168,7 @@ def spawn_zombie():
     zombie.health = zombie_health 
     zombies.append(zombie)
     zombie.setScale([0.01, 0.01, 0.01])
-    zombie.speed = random.uniform(0.03, 0.1)
+    zombie.speed = random.uniform(0.03, 0.07)
 
 def check_and_spawn_enemies():
     global num_zombies
@@ -265,16 +265,8 @@ def shoot_bullet():
             bullet.remove()
             return
     vizact.ontimer(0, move_bullet)
-
-def spawn_mine():
-    character_pos = character.getPosition()
-    mine = viz.addChild('assets/mīna.fbx')
-    mine.setPosition([character_pos[0], 0.02, character_pos[2]])
-    mine.setScale([0.01, 0.01, 0.01])
     
 def on_mouse_click(button):
     if button == viz.MOUSEBUTTON_LEFT:
         shoot_bullet()
-    elif button == viz.MOUSEBUTTON_RIGHT:
-        spawn_mine()
 viz.callback(viz.MOUSEDOWN_EVENT, on_mouse_click)
