@@ -6,8 +6,8 @@ import math
 import random
 import time
 
-#viz.window.setSize(1280, 720)
-viz.go(viz.FULLSCREEN)
+viz.window.setSize(1280, 720)
+viz.go()
 
 viz.clearcolor(viz.SKYBLUE)
 viz.MainView.getHeadLight().enable()
@@ -31,6 +31,8 @@ viz.MainView.getHeadLight().setEuler([0, 0, 0])
 viz.MainView.getHeadLight().intensity(1.2)
 
 spawn_walls(50)
+
+arena = viz.addChild(f'assets/arena.obj')
 
 health_points = 100
 hit_cooldown = 2
