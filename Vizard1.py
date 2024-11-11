@@ -19,11 +19,12 @@ floor.color([1, 1, 1])
 
 def spawn_walls(num_walls):
     for _ in range(num_walls):
-        wall_type = random.choice(['big', 'small'])
-        wall = viz.addChild(f'assets/{wall_type}wall.obj')
+        wall = viz.addChild(f'assets/monkey.obj')
         wall.setPosition([random.uniform(-floor_size/2, floor_size/2), 0, random.uniform(-floor_size/2, floor_size/2)])
-        wall.setScale([0.5, 0.5, 0.5])
-        wall.color([random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)])
+        random_scale = random.uniform(1, 3.0)
+        wall.setScale([random_scale, random_scale, random_scale])
+        random_rotation = random.uniform(0, 360)
+        wall.setEuler([random_rotation, 0, 0])
 
 viz.MainView.getHeadLight().enable()
 viz.MainView.getHeadLight().setPosition([0, 0, 0])
@@ -161,12 +162,13 @@ zombie_health = 30
 
 zombies = []
 
-num_zombies = 5
+num_zombies = 3
 
 
 def spawn_zombie():
     zombie = viz.addChild('assets/zomb.fbx')
-    zombie.setPosition([random.uniform(-floor_size/2, floor_size/2), 0, random.uniform(-floor_size/2, floor_size/2)])
+    #zombie.setPosition([random.uniform(-floor_size/2, floor_size/2), 0, random.uniform(-floor_size/2, floor_size/2)])
+    zombie.setPosition(get_random_position_around_character(spawn_radius))
     zombie.health = zombie_health 
     zombies.append(zombie)
     zombie.setScale([0.01, 0.01, 0.01])
