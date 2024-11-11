@@ -13,25 +13,28 @@ viz.clearcolor(viz.SKYBLUE)
 viz.MainView.getHeadLight().enable()
 
 floor_size = 50
-floor = vizshape.addPlane(size=(floor_size, floor_size), axis=vizshape.AXIS_Y, cullFace=False)
+#floor = vizshape.addPlane(size=(floor_size, floor_size), axis=vizshape.AXIS_Y, cullFace=False)\
+floor = viz.addChild(f'assets/floor.obj')
 floor.setPosition(0, 0, 0)
 floor.color([1, 1, 1])
 
 def spawn_walls(num_walls):
     for _ in range(num_walls):
-        wall = viz.addChild(f'assets/monkey.obj')
+        #wall = viz.addChild(f'assets/monkey.obj')
+        wall_type = random.choice(['big', 'small'])
+        wall = viz.addChild(f'assets/{wall_type}wall.obj')
+        
         wall.setPosition([random.uniform(-floor_size/2, floor_size/2), 0, random.uniform(-floor_size/2, floor_size/2)])
-        random_scale = random.uniform(1, 3.0)
-        wall.setScale([random_scale, random_scale, random_scale])
+        wall.setScale([0.7, 0.7, 0.7])
         random_rotation = random.uniform(0, 360)
         wall.setEuler([random_rotation, 0, 0])
+
+spawn_walls(30)
 
 viz.MainView.getHeadLight().enable()
 viz.MainView.getHeadLight().setPosition([0, 0, 0])
 viz.MainView.getHeadLight().setEuler([0, 0, 0])
 viz.MainView.getHeadLight().intensity(1.2)
-
-spawn_walls(50)
 
 arena = viz.addChild(f'assets/arena.obj')
 
@@ -223,6 +226,8 @@ def move_all_zombies():
 
 vizact.ontimer(0, move_all_zombies)
 
+aaa = viz.addAudio('assets/aaa.mp3')
+
 bullet_speed = 50
 active_bullets = []
 
@@ -261,6 +266,7 @@ def shoot_bullet():
                 if zombie.health <= 0:
                     zombie.remove()
                     zombies.remove(zombie)
+                    aaa.play()
                     update_score(int(500 * zombie.speed))
                 bullet.remove()
                 return
